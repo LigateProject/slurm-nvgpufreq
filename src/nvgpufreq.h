@@ -34,16 +34,7 @@ Author: Daniele Cesarini, CINECA
 
 #define _GNU_SOURCE
 #include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
 #include <string.h>
-#include <libgen.h>
-#include <unistd.h>
-#include <pwd.h>
-#include <grp.h>
-#include <dirent.h> 
-#include <sys/stat.h>
-#include <sys/types.h>
 
 #include <nvml.h>
 
