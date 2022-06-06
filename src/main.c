@@ -82,6 +82,15 @@ int slurm_spank_job_prolog(spank_t spank_ctx, int argc, char **argv)
   else
     slurm_info("[SLURM-NVGPUFREQ] The job %d requests the nvgpufreq gres, try to unrestricted the applications clocks commands!", job_id);
 
+  // Check if the job run exclusive on the node
+  if(!is_job_exclusive(job)){
+    slurm_info("[SLURM-NVGPUFREQ] This job %d is not exclusive! The applications clocks commands won't be unrestricted. Exit!", job_id);
+    slurm_free_job_info_msg(job_msg);
+    return OK_RET;
+  }
+  slurm_free_job_info_msg(job_msg);
+
+
   // Set the node
   int ret_conf_nvgpufreq = conf_nvgpufreq(spank_ctx, argc, argv, SET);
   if(ret_conf_nvgpufreq == ERROR_RET){
@@ -92,9 +101,8 @@ int slurm_spank_job_prolog(spank_t spank_ctx, int argc, char **argv)
     slurm_info("[SLURM-NVGPUFREQ][WARN] The applications clocks commands have been partially unrestricted!");
     return WARNING_RET;
   }
-  else{
-    return OK_RET;
-  }
+
+  return OK_RET;
 }
 
 // Callback of the job epilog. Called at the same time as the job epilog.

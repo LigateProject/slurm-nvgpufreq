@@ -49,3 +49,11 @@ HIDDEN int job_req_gres(job_info_t *job)
   else
     return TRUE;
 }
+
+HIDDEN int is_job_exclusive(job_info_t *job)
+{
+  if(job == NULL || job->shared)
+    return FALSE;
+  else
+    return TRUE;
+}
