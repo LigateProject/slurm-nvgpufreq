@@ -43,17 +43,17 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
   result = nvmlInit();
   if(NVML_SUCCESS != result)
   { 
-    slurm_info("[SLURM-SYSFS][ERR] Failed to initialize NVML: %s\n", nvmlErrorString(result));
+    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to initialize NVML: %s\n", nvmlErrorString(result));
     return ERROR_RET;
   }
 
   result = nvmlDeviceGetCount(&device_count);
   if(NVML_SUCCESS != result)
   { 
-    slurm_info("[SLURM-SYSFS][ERR] Failed to query device count: %s\n", nvmlErrorString(result));
+    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to query device count: %s\n", nvmlErrorString(result));
     result = nvmlShutdown();
     if(NVML_SUCCESS != result)
-      slurm_info("[SLURM-SYSFS][ERR] Failed to shutdown NVML: %s\n", nvmlErrorString(result));
+      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to shutdown NVML: %s\n", nvmlErrorString(result));
     return ERROR_RET;
   }
 
@@ -67,7 +67,7 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
     result = nvmlDeviceGetHandleByIndex(i, &device);
     if(NVML_SUCCESS != result)
     { 
-      slurm_info("[SLURM-SYSFS][ERR] Failed to get handle for device %u: %s\n", i, nvmlErrorString(result));
+      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to get handle for device %u: %s\n", i, nvmlErrorString(result));
       ret = WARNING_RET;
       continue;
     }
@@ -75,7 +75,7 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
     result = nvmlDeviceGetName(device, name, NVML_DEVICE_NAME_BUFFER_SIZE);
     if(NVML_SUCCESS != result)
     { 
-      slurm_info("[SLURM-SYSFS][ERR] Failed to get name of device %u: %s\n", i, nvmlErrorString(result));
+      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to get name of device %u: %s\n", i, nvmlErrorString(result));
       ret = WARNING_RET;
       continue;
     }
@@ -83,7 +83,7 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
     result = nvmlDeviceGetPciInfo(device, &pci);
     if(NVML_SUCCESS != result)
     { 
-      slurm_info("[SLURM-SYSFS][ERR] Failed to get pci info for device %u: %s\n", i, nvmlErrorString(result));
+      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to get pci info for device %u: %s\n", i, nvmlErrorString(result));
       ret = WARNING_RET;
       continue;
     }
@@ -95,7 +95,7 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
       result = nvmlDeviceResetApplicationsClocks(device);
       if(NVML_SUCCESS != result)
       {
-        slurm_info("[SLURM-SYSFS][ERR] Failed to set API restriction for device %u: %s\n", i, nvmlErrorString(result));
+        slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to set API restriction for device %u: %s\n", i, nvmlErrorString(result));
         ret = WARNING_RET;
         continue;
       }
@@ -103,7 +103,7 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
   	  result = nvmlDeviceSetAPIRestriction(device, apiType, isRestricted);
       if(NVML_SUCCESS != result)
       { 
-        slurm_info("[SLURM-SYSFS][ERR] Failed to set API restriction for device %u: %s\n", i, nvmlErrorString(result));
+        slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to set API restriction for device %u: %s\n", i, nvmlErrorString(result));
         ret = WARNING_RET;
         continue;
       }
@@ -116,7 +116,7 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
       result = nvmlDeviceSetAPIRestriction(device, apiType, isRestricted);
       if(NVML_SUCCESS != result)
       { 
-        slurm_info("[SLURM-SYSFS][ERR] Failed to set API restriction for device %u: %s\n", i, nvmlErrorString(result));
+        slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to set API restriction for device %u: %s\n", i, nvmlErrorString(result));
         ret = WARNING_RET;
         continue;
       }
@@ -131,13 +131,33 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
       slurm_info("[SLURM-NVGPUFREQ] Applications clocks have been reset for GPU: %u. %s [%s]\n", i, name, pci.busId);
     }
   }
+  
+  if(conf == SET)
+  {
+    // Create the the nvgpufreq status file
+    FILE *fd_run_config = fopen(PLUGIN_RUN_CONF, "w");
+    if(fd_run_config == NULL){
+      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to create the nvgpufreq status file: %s", PLUGIN_RUN_CONF);
+      ret = WARNING_RET;
+    }
+    else{
+      if(ret == WARNING_RET)
+        fprintf(fd_run_config, "WARNING");
+      else if(ret == WARNING_RET)
+        fprintf(fd_run_config, "COMPLETED");
+
+      fclose(fd_run_config);
+    }
+  }
+  else if(conf == RESET)
+    remove(PLUGIN_RUN_CONF);
 
   result = nvmlShutdown();
   if(NVML_SUCCESS != result)
   {
-    slurm_info("[SLURM-SYSFS][ERR] Failed to shutdown NVML: %s\n", nvmlErrorString(result));
+    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to shutdown NVML: %s\n", nvmlErrorString(result));
     return WARNING_RET;
   }
-  else
-    return ret;
+
+  return ret;
 }

@@ -45,6 +45,8 @@ Author: Daniele Cesarini, CINECA
 #ifndef __SPANK_NVGPUFREQ__
 #define	__SPANK_NVGPUFREQ__
 
+#define PLUGIN_RUN_CONF "/var/run/nvgpufreq.run"
+
 #define ERROR "<ERROR>"
 #define IGNORE "<IGNORE>"
 #define CPU_ID "<CPU_ID>"
