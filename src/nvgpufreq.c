@@ -40,20 +40,49 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
   unsigned int device_count, i;
   int ret = OK_RET;
 
-  result = nvmlInit();
-  if(NVML_SUCCESS != result)
-  { 
-    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to initialize NVML: %s\n", nvmlErrorString(result));
+  void *hl = dlopen(NVML_SHARED_OBJ, RTLD_LAZY);
+  if(hl == NULL)
+  {
+    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to open the NVML shared object: " NVML_SHARED_OBJ);
     return ERROR_RET;
   }
 
-  result = nvmlDeviceGetCount(&device_count);
+  nvmlReturn_t (*DLnvmlInit)(void) = dlsym(hl, "nvmlInit");
+  nvmlReturn_t (*DLnvmlDeviceGetCount)(unsigned int*) = dlsym(hl, "nvmlDeviceGetCount");
+  nvmlReturn_t (*DLnvmlDeviceGetHandleByIndex)(unsigned int, nvmlDevice_t*) = dlsym(hl, "nvmlDeviceGetHandleByIndex");
+  nvmlReturn_t (*DLnvmlDeviceGetName)(nvmlDevice_t, char*, unsigned int) = dlsym(hl, "nvmlDeviceGetName");
+  nvmlReturn_t (*DLnvmlDeviceGetPciInfo)(nvmlDevice_t, nvmlPciInfo_t*) = dlsym(hl, "nvmlDeviceGetPciInfo");
+  nvmlReturn_t (*DLnvmlDeviceResetApplicationsClocks)(nvmlDevice_t) = dlsym(hl, "nvmlDeviceResetApplicationsClocks");
+  nvmlReturn_t (*DLnvmlDeviceSetAPIRestriction)(nvmlDevice_t, nvmlRestrictedAPI_t, nvmlEnableState_t) = dlsym(hl, "nvmlDeviceSetAPIRestriction");
+  nvmlReturn_t (*DLnvmlShutdown)(void) = dlsym(hl, "nvmlShutdown");
+  char* (*DLnvmlErrorString)(nvmlReturn_t) = dlsym(hl, "nvmlErrorString");
+  if(DLnvmlInit == NULL ||
+     DLnvmlDeviceGetCount == NULL ||
+     DLnvmlDeviceGetHandleByIndex == NULL ||
+     DLnvmlDeviceGetName == NULL ||
+     DLnvmlDeviceGetPciInfo == NULL ||
+     DLnvmlDeviceResetApplicationsClocks == NULL ||
+     DLnvmlDeviceSetAPIRestriction == NULL ||
+     DLnvmlShutdown == NULL)
+  {
+    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to open the symbols of NVML shared object: " NVML_SHARED_OBJ);
+    return ERROR_RET;
+  }
+
+  result = DLnvmlInit();
   if(NVML_SUCCESS != result)
   { 
-    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to query device count: %s\n", nvmlErrorString(result));
-    result = nvmlShutdown();
+    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to initialize NVML: %s\n", DLnvmlErrorString(result));
+    return ERROR_RET;
+  }
+
+  result = DLnvmlDeviceGetCount(&device_count);
+  if(NVML_SUCCESS != result)
+  { 
+    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to query device count: %s\n", DLnvmlErrorString(result));
+    result = DLnvmlShutdown();
     if(NVML_SUCCESS != result)
-      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to shutdown NVML: %s\n", nvmlErrorString(result));
+      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to shutdown NVML: %s\n", DLnvmlErrorString(result));
     return ERROR_RET;
   }
 
@@ -64,26 +93,26 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
     nvmlPciInfo_t pci;
 	  nvmlRestrictedAPI_t apiType = NVML_RESTRICTED_API_SET_APPLICATION_CLOCKS;
 
-    result = nvmlDeviceGetHandleByIndex(i, &device);
+    result = DLnvmlDeviceGetHandleByIndex(i, &device);
     if(NVML_SUCCESS != result)
     { 
-      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to get handle for device %u: %s\n", i, nvmlErrorString(result));
+      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to get handle for device %u: %s\n", i, DLnvmlErrorString(result));
       ret = WARNING_RET;
       continue;
     }
 
-    result = nvmlDeviceGetName(device, name, NVML_DEVICE_NAME_BUFFER_SIZE);
+    result = DLnvmlDeviceGetName(device, name, NVML_DEVICE_NAME_BUFFER_SIZE);
     if(NVML_SUCCESS != result)
     { 
-      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to get name of device %u: %s\n", i, nvmlErrorString(result));
+      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to get name of device %u: %s\n", i, DLnvmlErrorString(result));
       ret = WARNING_RET;
       continue;
     }
     
-    result = nvmlDeviceGetPciInfo(device, &pci);
+    result = DLnvmlDeviceGetPciInfo(device, &pci);
     if(NVML_SUCCESS != result)
     { 
-      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to get pci info for device %u: %s\n", i, nvmlErrorString(result));
+      slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to get pci info for device %u: %s\n", i, DLnvmlErrorString(result));
       ret = WARNING_RET;
       continue;
     }
@@ -92,18 +121,18 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
     {
       nvmlEnableState_t isRestricted = NVML_FEATURE_DISABLED;
 
-      result = nvmlDeviceResetApplicationsClocks(device);
+      result = DLnvmlDeviceResetApplicationsClocks(device);
       if(NVML_SUCCESS != result)
       {
-        slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to set API restriction for device %u: %s\n", i, nvmlErrorString(result));
+        slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to set API restriction for device %u: %s\n", i, DLnvmlErrorString(result));
         ret = WARNING_RET;
         continue;
       }
   	
-  	  result = nvmlDeviceSetAPIRestriction(device, apiType, isRestricted);
+  	  result = DLnvmlDeviceSetAPIRestriction(device, apiType, isRestricted);
       if(NVML_SUCCESS != result)
       { 
-        slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to set API restriction for device %u: %s\n", i, nvmlErrorString(result));
+        slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to set API restriction for device %u: %s\n", i, DLnvmlErrorString(result));
         ret = WARNING_RET;
         continue;
       }
@@ -113,16 +142,16 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
     {
       nvmlEnableState_t isRestricted = NVML_FEATURE_ENABLED;
 
-      result = nvmlDeviceSetAPIRestriction(device, apiType, isRestricted);
+      result = DLnvmlDeviceSetAPIRestriction(device, apiType, isRestricted);
       if(NVML_SUCCESS != result)
       { 
-        slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to set API restriction for device %u: %s\n", i, nvmlErrorString(result));
+        slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to set API restriction for device %u: %s\n", i, DLnvmlErrorString(result));
         ret = WARNING_RET;
         continue;
       }
       slurm_info("[SLURM-NVGPUFREQ] Applications clocks commands have been set to RESTRICTED for GPU: %u. %s [%s]\n", i, name, pci.busId);
 
-      result = nvmlDeviceResetApplicationsClocks(device);
+      result = DLnvmlDeviceResetApplicationsClocks(device);
       if(NVML_SUCCESS != result)
       { 
         ret = WARNING_RET;
@@ -132,12 +161,14 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
     }
   }
 
-  result = nvmlShutdown();
+  result = DLnvmlShutdown();
   if(NVML_SUCCESS != result)
   {
-    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to shutdown NVML: %s\n", nvmlErrorString(result));
+    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to shutdown NVML: %s\n", DLnvmlErrorString(result));
     ret = WARNING_RET;
   }
+
+  dlclose(hl);
 
   if(conf == SET)
   {

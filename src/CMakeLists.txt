@@ -40,7 +40,7 @@ add_library(nvgpufreq SHARED ${SOURCES})
 
 # Add link libraries
 target_link_libraries(nvgpufreq PRIVATE SLURM::SLURM)
-target_link_libraries(nvgpufreq PRIVATE CUDA::nvml)
+target_include_directories(nvgpufreq PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 
 # Compile options
 target_compile_options(nvgpufreq PRIVATE "-Wall")
