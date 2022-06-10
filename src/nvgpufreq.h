@@ -76,6 +76,7 @@ int slurm_spank_job_epilog(spank_t spank_ctx, int argc, char **argv);
 int node_has_gres(node_info_t *job);
 int job_req_gres(job_info_t *job);
 int is_job_exclusive(job_info_t *job);
+int is_node_consistent();
 
 // nvgpufreq.c
 int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf);

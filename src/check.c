@@ -57,3 +57,11 @@ HIDDEN int is_job_exclusive(job_info_t *job)
   else
     return TRUE;
 }
+
+HIDDEN int is_node_consistent()
+{
+  if(access(PLUGIN_RUN_CONF, F_OK) != -1)
+    return FALSE;
+  else
+    return TRUE;
+}

@@ -128,13 +128,19 @@ int slurm_spank_job_epilog(spank_t spank_ctx, int argc, char **argv)
   slurm_free_node_info_msg(node_msg);
 
   // Reset the node
-  int ret_conf_nvgpufreq = conf_nvgpufreq(spank_ctx, argc, argv, RESET);
-  if(ret_conf_nvgpufreq == ERROR_RET){
-    slurm_info("[SLURM-NVGPUFREQ][ERR] It is not possible to restricted the applications clocks commands! Exit!");
-    return ERROR_RET;
+  if(!is_node_consistent()){
+    slurm_info("[SLURM-SYSFS] Try to restore the nvgpufreq files to the system state configuration!");
+
+    int ret_conf_nvgpufreq = conf_nvgpufreq(spank_ctx, argc, argv, RESET);
+    if(ret_conf_nvgpufreq == ERROR_RET){
+      slurm_info("[SLURM-NVGPUFREQ][ERR] It is not possible to restricted the applications clocks commands! Exit!");
+      return ERROR_RET;
+    }
+    else if(ret_conf_nvgpufreq == WARNING_RET)
+      slurm_info("[SLURM-NVGPUFREQ][WARN] The applications clocks commands have been partially restricted!");
+    else
+      slurm_info("[SLURM-NVGPUFREQ][WARN] The applications clocks commands have been restricted!");
   }
-  else if(ret_conf_nvgpufreq == WARNING_RET)
-    slurm_info("[SLURM-NVGPUFREQ][WARN] The applications clocks commands have been partially restricted!");
 
   return OK_RET;
 }
