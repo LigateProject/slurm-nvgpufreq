@@ -47,7 +47,7 @@ Author: Daniele Cesarini, CINECA
 #define	__SPANK_NVGPUFREQ__
 
 #define PLUGIN_RUN_CONF "/var/run/nvgpufreq.run"
-#define NVML_SHARED_OBJ "/install/linux-centos7-sandybridge/gcc-4.8.5/cuda-11.7.0-nvmudm4bbsnap6z7gu7cespqpdtdtl7v/targets/x86_64-linux/lib/stubs/libnvidia-ml.so"
+#define NVML_SHARED_OBJ "libnvidia-ml.so"
 
 #define ERROR "<ERROR>"
 #define IGNORE "<IGNORE>"
