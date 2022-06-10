@@ -131,7 +131,14 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
       slurm_info("[SLURM-NVGPUFREQ] Applications clocks have been reset for GPU: %u. %s [%s]\n", i, name, pci.busId);
     }
   }
-  
+
+  result = nvmlShutdown();
+  if(NVML_SUCCESS != result)
+  {
+    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to shutdown NVML: %s\n", nvmlErrorString(result));
+    ret = WARNING_RET;
+  }
+
   if(conf == SET)
   {
     // Create the the nvgpufreq status file
@@ -151,13 +158,6 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
   }
   else if(conf == RESET)
     remove(PLUGIN_RUN_CONF);
-
-  result = nvmlShutdown();
-  if(NVML_SUCCESS != result)
-  {
-    slurm_info("[SLURM-NVGPUFREQ][ERR] Failed to shutdown NVML: %s\n", nvmlErrorString(result));
-    return WARNING_RET;
-  }
 
   return ret;
 }
