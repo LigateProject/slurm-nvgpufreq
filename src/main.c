@@ -79,8 +79,7 @@ int slurm_spank_job_prolog(spank_t spank_ctx, int argc, char **argv)
     slurm_free_job_info_msg(job_msg);
     return OK_RET;
   }
-  else
-    slurm_info("[SLURM-NVGPUFREQ] The job %d requests the nvgpufreq gres, try to unrestricted the applications clocks commands!", job_id);
+  slurm_info("[SLURM-NVGPUFREQ] The job %d requests the nvgpufreq gres, try to unrestricted the applications clocks commands!", job_id);
 
   // Check if the job run exclusive on the node
   if(!is_job_exclusive(job)){
@@ -139,9 +138,9 @@ int slurm_spank_job_epilog(spank_t spank_ctx, int argc, char **argv)
       return ERROR_RET;
     }
     else if(ret_conf_nvgpufreq == WARNING_RET)
-      slurm_info("[SLURM-NVGPUFREQ][WARN] The applications clocks commands have been partially restricted!");
+      slurm_info("[SLURM-NVGPUFREQ][WARN] The applications clocks commands have been partially restricted! Exit!");
     else
-      slurm_info("[SLURM-NVGPUFREQ][WARN] The applications clocks commands have been restricted!");
+      slurm_info("[SLURM-NVGPUFREQ] The applications clocks commands have been restricted! Exit!");
   }
 
   return OK_RET;
