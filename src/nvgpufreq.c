@@ -181,7 +181,7 @@ HIDDEN int conf_nvgpufreq(spank_t spank_ctx, int argc, char **argv, int conf)
     else{
       if(ret == WARNING_RET)
         fprintf(fd_run_config, "WARNING");
-      else if(ret == WARNING_RET)
+      else
         fprintf(fd_run_config, "COMPLETED");
 
       fclose(fd_run_config);

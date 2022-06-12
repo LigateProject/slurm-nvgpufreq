@@ -98,9 +98,11 @@ int slurm_spank_job_prolog(spank_t spank_ctx, int argc, char **argv)
     return ERROR_RET;
   }
   else if(ret_conf_nvgpufreq == WARNING_RET){
-    slurm_info("[SLURM-NVGPUFREQ][WARN] The applications clocks commands have been partially unrestricted!");
+    slurm_info("[SLURM-NVGPUFREQ][WARN] The applications clocks commands have been partially unrestricted! Exit!");
     return WARNING_RET;
   }
+  else
+    slurm_info("[SLURM-NVGPUFREQ][WARN] The applications clocks commands have been unrestricted! Exit!");
 
   return OK_RET;
 }
